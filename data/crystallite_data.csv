@@ -1,0 +1,76 @@
+Temperature_K,Time_h,Fuel,Crystallite_Size
+773,6,Citric Acid,19.01
+873,3,Citric Acid,20.89
+1073,5,Citric Acid,21
+673,1,Citric Acid,57.96
+873,3,Citric Acid,16.85
+1173,2,Citric Acid,27
+773,4,Citric Acid,25.65
+773,3,Citric Acid,39.9
+973,3,Citric Acid,37
+673,3,Citric Acid,16.18
+873,3,Citric Acid,17.33
+1073,3,Citric Acid,26.94
+573,1,Citric Acid,10.4
+623,2,Citric Acid,11.09
+723,2,Citric Acid,15.1
+823,2,Citric Acid,22.31
+923,2,Citric Acid,32.71
+673,4,Citric Acid,21
+723,3,Citric Acid,34.7
+873,4,Citric Acid,27.6
+773,5,Citric Acid,34
+773,2,Citric Acid,7.54
+973,2,Citric Acid,36.7
+1173,2,Citric Acid,50.95
+1373,2,Citric Acid,56.4
+973,2,Citric Acid,29.98
+1073,3,Citric Acid,41.1
+923,5,Citric Acid,28
+1023,5,Citric Acid,32
+1323,5,Citric Acid,38
+973,3,Citric Acid,27
+1023,2,Citric Acid,34.6
+873,3,Citric Acid,36
+1173,6,Citric Acid,21.04
+1173,4,Citric Acid,34.96
+1073,5,Citric Acid,40
+1023,3,Citric Acid,21.06
+773,4,Citric Acid,30.04
+1273,4,Citric Acid,23.8
+973,3,Citric Acid,36
+823,6,Citric Acid,30.46
+773,5,Citric Acid,19.99
+1173,6,Citric Acid,40.11
+773,4,Diethanolamine,37.82
+973,4,Diethanolamine,39.68
+1173,4,Diethanolamine,40.56
+1373,4,Diethanolamine,45.49
+1373,4,Diethanolamine,41.8
+1373,4,Diethanolamine,45.5
+1223,4,Ethylene Glycol,20
+573,7,Ethylene Glycol,10
+623,7,Ethylene Glycol,11
+673,7,Ethylene Glycol,11
+723,7,Ethylene Glycol,12
+1223,3,Ethylene Glycol,11
+873,4,Ethylene Glycol,40
+973,3,Ethylene Glycol,50.07
+873,2,Glycine,7
+973,2,Glycine,23.9
+1073,2,Glycine,46.7
+773,1,Glycine,10.2
+873,1,Glycine,11.8
+973,1,Glycine,15.1
+1073,1,Glycine,29.7
+1173,1,Glycine,31.6
+1273,1,Glycine,48
+1373,1,Glycine,57.3
+1473,1,Glycine,74.1
+773,2,Glycine,36
+773,3,Urea,10
+773,3,Urea,18
+873,3,Urea,24
+973,3,Urea,28
+1073,3,Urea,61
+973,2,Urea,13

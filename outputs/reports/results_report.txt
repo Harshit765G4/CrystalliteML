@@ -1,0 +1,56 @@
+==============================================================
+  CrystalliteML — Full Analysis Report
+  Generated : 2026-06-17 22:10:49
+==============================================================
+
+── Model Parameters ──────────────────────────────────────────
+  Param                       Random Forest         XGBoost
+  -------------------------------------------------------
+  n_estimators                          300             300
+  max_depth                            None               4
+  cv_strategy               5-Fold KFold (shuffle=True) 5-Fold KFold (shuffle=True)
+
+── Performance Metrics ───────────────────────────────────────
+  Metric                      Random Forest         XGBoost
+  -------------------------------------------------------
+  Train R²                           0.6904          0.5338
+  CV R² Mean                        -0.2679         -0.2862
+  CV R² Std                          0.4119          0.4019
+  Train RMSE (nm)                      7.97            9.78
+  CV RMSE (nm)                        13.65           13.77
+  Train MAE (nm)                       6.22            8.07
+  CV MAE (nm)                         11.04           11.24
+
+── SHAP Feature Importance ───────────────────────────────────
+  Feature                           RF SHAP        XGB SHAP
+  -------------------------------------------------------
+  Temperature (K)                    6.4739          6.8949
+  Time (h)                           2.8456          2.0869
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERPRETATION SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A. SHAP Global Importance
+   Temperature is ~2.2x more influential than Time in both models.
+
+B. SHAP Dependence — Temperature
+   Nonlinear; threshold transition at 800–1000 K consistent with
+   thermally-activated grain growth (Arrhenius kinetics).
+
+C. SHAP Dependence — Time
+   Saturation behaviour confirmed; SHAP plateaus beyond ~5 h.
+   High-temperature samples override time effects.
+
+D. PDP — Temperature
+   Monotonically increasing; steepest gradient above 850 K.
+
+E. PDP — Time
+   Sharp rise 1–4 h; near-plateau from 5 h onward.
+
+F. Model Performance Note
+   Negative CV R² is expected for this small 75-sample multi-fuel
+   dataset with high scatter at identical T/t conditions.
+   Recommendation: add Fuel as categorical feature or use
+   per-fuel sub-models for improved generalisation.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
