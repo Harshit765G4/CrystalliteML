@@ -1,160 +1,213 @@
-# CrystalliteML
-## Machine Learning Analysis of Crystallite Size in Combustion-Synthesised Nanomaterials
+# 🔬 CrystalliteML
 
-> **A Random Forest + SHAP + Partial Dependence Pipeline for Predicting and Interpreting Crystallite Size as a Function of Synthesis Temperature and Time**
+### Machine Learning Analysis of Crystallite Size in Combustion-Synthesised Nanomaterials
 
----
+CrystalliteML is a reproducible Python pipeline for modeling **crystallite size** from synthesis **temperature** and **time**, then interpreting the learned relationships with **SHAP** and **Partial Dependence Plots (PDP)**.
 
-## Table of Contents
+The current implementation compares two tree-based regression models:
 
-1. [Project Overview](#1-project-overview)
-2. [Scientific Background](#2-scientific-background)
-3. [Dataset Description](#3-dataset-description)
-4. [Methodology](#4-methodology)
-5. [Project Architecture](#5-project-architecture)
-6. [Installation & Setup](#6-installation--setup)
-7. [Running the Pipeline](#7-running-the-pipeline)
-8. [Results & Deliverables](#8-results--deliverables)
-9. [Interpretation of Results](#9-interpretation-of-results)
-10. [GitHub Setup Guide](#10-github-setup-guide)
-11. [Dependencies](#11-dependencies)
-12. [Citation & References](#12-citation--references)
+- **Random Forest Regressor**
+- **XGBoost Regressor**
 
----
+The pipeline automatically trains both models, evaluates them with 5-fold cross-validation, generates explainability plots, saves trained models, and produces a text report.
 
-## 1. Project Overview
+## 🎯 Project Overview
 
-CrystalliteML is a reproducible machine-learning pipeline that:
+The pipeline answers two practical questions:
 
-- Trains a **Random Forest Regressor** on experimental crystallite-size data from combustion synthesis.
-- Evaluates model performance using **5-Fold Cross-Validation** (R², RMSE, MAE).
-- Applies **SHAP (SHapley Additive exPlanations)** to decompose and explain each feature's contribution to the prediction.
-- Generates **Partial Dependence Plots (PDP)** to visualise the marginal effect of each synthesis parameter.
-- Saves all plots, the trained model, and a text report automatically.
+1. How well can machine-learning models predict crystallite size from synthesis conditions?
+2. Which synthesis parameter—temperature or time—has the strongest influence on the predictions?
 
-The pipeline is designed for **IEEE paper submission** and is fully reproducible from a single command.
+Current model inputs:
 
----
+```text
+Temperature_K
+Time_h
+```
 
-## 2. Scientific Background
+Target:
 
-Crystallite size in combustion-synthesised nanomaterials is controlled primarily by two synthesis parameters:
+```text
+Crystallite_Size
+```
 
-| Parameter | Physical Role |
+The dataset also records **Fuel**, but the current training pipeline does **not** use Fuel as a model feature.
+
+## 🧪 Scientific Context
+
+Crystallite growth in combustion-synthesised materials is influenced by thermal exposure.
+
+- **Temperature** affects thermal activation and grain-growth kinetics.
+- **Time** controls how long the material remains under the synthesis conditions.
+- Different fuels can introduce additional variation even when nominal temperature and time are similar.
+
+The crystallite sizes in the dataset are experimentally derived values, while the machine-learning stage learns an empirical relationship between the recorded synthesis conditions and measured crystallite size.
+
+## 📊 Dataset
+
+Dataset file:
+
+```text
+data/crystallite_data.csv
+```
+
+The current repository contains **76 observations** with the following fields:
+
+| Column | Meaning |
 |---|---|
-| **Temperature (K)** | Controls thermal activation energy for grain nucleation and growth; follows Arrhenius-type kinetics |
-| **Time (h)** | Controls duration of thermal exposure; exhibits saturation kinetics (grain growth slows over time) |
+| `Temperature_K` | Synthesis temperature in Kelvin |
+| `Time_h` | Synthesis duration in hours |
+| `Fuel` | Fuel used during combustion synthesis |
+| `Crystallite_Size` | Measured crystallite size |
 
-Different **fuel types** (Citric Acid, Glycine, Urea, Diethanolamine, Ethylene Glycol) alter the combustion flame temperature and therefore the effective thermal history of the powder, introducing scatter at nominally identical T/t conditions.
+The training code uses only `Temperature_K` and `Time_h` as predictors.
 
-The Scherrer equation is used experimentally to extract crystallite size (D) from XRD peak broadening:
+Observed ranges in the repository data are approximately:
 
-```
-D = Kλ / (β cos θ)
-```
+- Temperature: **573–1473 K**
+- Time: **1–7 h**
+- Crystallite size: **7–74.1 nm**
 
-Where K = shape factor, λ = X-ray wavelength, β = FWHM, θ = Bragg angle.
+## 🧠 Models
 
----
+### Random Forest Regressor
 
-## 3. Dataset Description
+Configuration in `src/config.py`:
 
-| Attribute | Details |
-|---|---|
-| **Source** | Experimental XRD measurements from literature |
-| **Samples** | 76 data points |
-| **Features** | Temperature (K), Time (h) |
-| **Target** | Crystallite Size (nm) |
-| **Fuel Types** | Citric Acid, Glycine, Urea, Diethanolamine, Ethylene Glycol |
-| **Temperature range** | 573 – 1473 K |
-| **Time range** | 1 – 7 h |
-| **Crystallite size range** | 7 – 74.1 nm |
-
-File location: `data/crystallite_data.csv`
-
----
-
-## 4. Methodology
-
-### 4.1 Random Forest Regressor
-
-```
-Hyperparameters:
-  n_estimators      = 300
-  max_depth         = None  (full depth)
-  min_samples_split = 3
-  min_samples_leaf  = 1
-  max_features      = sqrt
-  random_state      = 42
+```text
+n_estimators      = 300
+max_depth         = None
+min_samples_split = 3
+min_samples_leaf  = 1
+max_features      = "sqrt"
+random_state      = 42
+n_jobs            = -1
 ```
 
-**Why Random Forest?**
-- Handles non-linear relationships between T, t, and crystallite size
-- Robust to outliers (important for multi-fuel experimental data)
-- Natively supports SHAP TreeExplainer (exact SHAP values, not approximations)
-- Provides built-in feature importance as a sanity check alongside SHAP
+### XGBoost Regressor
 
-### 4.2 Cross-Validation Strategy
-
-```
-Strategy : 5-Fold KFold
-Shuffle  : True
-Seed     : 42
-Metrics  : R², RMSE, MAE (train + CV)
-```
-
-### 4.3 SHAP Analysis
-
-SHAP values decompose each prediction into additive feature contributions:
-
-```
-f(x) = φ₀ + φ_Temperature + φ_Time
+```text
+n_estimators      = 300
+max_depth         = 4
+learning_rate     = 0.05
+subsample         = 0.8
+colsample_bytree  = 0.8
+reg_alpha         = 0.1
+reg_lambda        = 1.0
+random_state      = 42
+n_jobs            = -1
 ```
 
-Where:
-- `φ₀` = baseline (mean prediction)
-- `φ_Temperature` = contribution of Temperature for this sample
-- `φ_Time` = contribution of Time for this sample
+### Cross-validation
 
-Four SHAP outputs are generated:
-1. **Global Importance Bar** — Mean |SHAP| per feature
-2. **Summary Plot (Beeswarm)** — SHAP distribution across all samples
-3. **Dependence Plot — Temperature** — SHAP vs T, coloured by t
-4. **Dependence Plot — Time** — SHAP vs t, coloured by T
+Both models are evaluated using:
 
-### 4.4 Partial Dependence Plots
-
-PDP marginalises out all other features to show the **average effect** of a single feature:
-
-```
-PDP(x_s) = E_{x_c}[f(x_s, x_c)]
+```text
+5-Fold KFold
+shuffle = True
+random_state = 42
 ```
 
-PDPs reveal:
-- Monotonic vs non-monotonic trends
-- Saturation regions
-- Inflection points (steepest growth rate)
+Reported metrics include:
 
----
+- Train R²
+- Cross-validation R² mean and standard deviation
+- Train RMSE
+- Cross-validation RMSE
+- Train MAE
+- Cross-validation MAE
 
-## 5. Project Architecture
+## 🔍 Explainability
 
+CrystalliteML uses **SHAP TreeExplainer** for both tree-based models.
+
+The pipeline calculates mean absolute SHAP values for:
+
+- Temperature
+- Time
+
+It also generates:
+
+### SHAP global importance
+
+Compares feature contribution magnitude between Random Forest and XGBoost.
+
+### SHAP summary plots
+
+Shows the distribution of feature-level SHAP effects across the dataset.
+
+### SHAP dependence — Temperature
+
+Plots temperature against its SHAP contribution and colours points by synthesis time. The implementation overlays a cubic trend.
+
+### SHAP dependence — Time
+
+Plots time against its SHAP contribution and colours points by temperature. The implementation overlays a quadratic trend.
+
+## 📈 Partial Dependence Analysis
+
+The PDP module uses scikit-learn's `partial_dependence` to estimate the average model response as one feature changes.
+
+Generated analyses:
+
+- Temperature → predicted crystallite size
+- Time → predicted crystallite size
+
+The plots include annotations for:
+
+- the steepest temperature rise
+- the detected saturation onset in time
+
+The input matrix is explicitly converted to `float64` before PDP calculation to avoid dtype-related errors.
+
+## 🔄 Full Pipeline
+
+Run everything through the single entry point:
+
+```bash
+python main.py
 ```
+
+The five stages are:
+
+```text
+1. Load Data
+      ↓
+2. Train Random Forest + XGBoost
+      ↓
+3. SHAP Analysis
+      ↓
+4. Partial Dependence Plots
+      ↓
+5. Reports + Metrics Table
+```
+
+The main pipeline is implemented as:
+
+```text
+main.py
+  ├── src.data_loader.load_data()
+  ├── src.model.train_models()
+  ├── src.shap_analysis.run_shap()
+  ├── src.pdp_analysis.run_pdp()
+  └── src.report.save_text_report()
+```
+
+## 📁 Project Structure
+
+```text
 CrystalliteML/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── data/
-│   └── crystallite_data.csv         ← Raw experimental dataset
-│
-├── src/
-│   ├── __init__.py
-│   ├── config.py                    ← All paths, hyperparameters, colours
-│   ├── data_loader.py               ← Load CSV, return X, y, df
-│   ├── model.py                     ← RF training, CV, metrics, Actual vs Predicted
-│   ├── shap_analysis.py             ← SHAP computation + 4 SHAP plots
-│   ├── pdp_analysis.py              ← 2 Partial Dependence plots
-│   └── report.py                    ← Text report + metrics table PNG
+│   └── crystallite_data.csv
 │
 ├── outputs/
+│   ├── models/
+│   │   ├── random_forest.pkl
+│   │   └── xgboost.pkl
 │   ├── plots/
 │   │   ├── 0_actual_vs_predicted.png
 │   │   ├── 1_shap_importance_bar.png
@@ -164,275 +217,213 @@ CrystalliteML/
 │   │   ├── 5_pdp_temperature.png
 │   │   ├── 6_pdp_time.png
 │   │   └── 8_metrics_table.png
-│   ├── models/
-│   │   └── random_forest.pkl        ← Saved trained model
 │   └── reports/
-│       └── results_report.txt       ← Full text results
+│       └── results_report.txt
 │
-├── notebooks/
-│   └── (optional Jupyter notebooks)
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── data_loader.py
+│   ├── model.py
+│   ├── pdp_analysis.py
+│   ├── report.py
+│   └── shap_analysis.py
 │
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   ← GitHub Actions CI pipeline
-│
-├── main.py                          ← Single entry point (run this)
-├── requirements.txt
 ├── .gitignore
+├── main.py
+├── requirements.txt
 └── README.md
 ```
 
----
+### Key modules
 
-## 6. Installation & Setup
+| Module | Responsibility |
+|---|---|
+| `src/config.py` | Paths, feature names, model hyperparameters, CV settings |
+| `src/data_loader.py` | CSV loading and numeric conversion |
+| `src/model.py` | Model training, CV metrics, model serialization, actual-vs-predicted plot |
+| `src/shap_analysis.py` | SHAP values and SHAP plots |
+| `src/pdp_analysis.py` | Partial dependence analysis and plots |
+| `src/report.py` | Text report generation |
 
-### Prerequisites
+## ⚙️ Installation
 
-- Python **3.11.x** (recommended; TensorFlow incompatibility exists with 3.14+)
-- pip
-- git
+Recommended environment: **Python 3.11**.
 
-### Step 1 — Clone the Repository
+Create a virtual environment:
 
-```bash
-git clone https://github.com/YOUR_USERNAME/CrystalliteML.git
-cd CrystalliteML
-```
+### Windows
 
-### Step 2 — Create Virtual Environment
-
-```bash
-# Windows
+```powershell
 python -m venv venv
 venv\Scripts\activate
+```
 
-# macOS / Linux
+### macOS / Linux
+
+```bash
 python3.11 -m venv venv
 source venv/bin/activate
 ```
 
-### Step 3 — Install Dependencies
+Install dependencies:
 
 ```bash
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Step 4 — Verify Installation
+The repository currently requires:
 
-```bash
-python -c "import sklearn, shap, matplotlib; print('All packages OK')"
+```text
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+shap>=0.44.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+xgboost>=2.0.0
 ```
 
----
+## ▶️ Running the Project
 
-## 7. Running the Pipeline
+From the repository root:
 
 ```bash
 python main.py
 ```
 
-Expected console output:
+The pipeline creates or refreshes the `outputs/` directory contents.
 
+## 📦 Generated Outputs
+
+### Models
+
+```text
+outputs/models/random_forest.pkl
+outputs/models/xgboost.pkl
 ```
-╔═════════════════════════════════════════════════════╗
-║          CrystalliteML — Full Pipeline              ║
-╚═════════════════════════════════════════════════════╝
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  STEP 1 / 5  —  Loading Data
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  [Dataset summary printed]
+Both are serialized with Python pickle and can be loaded with the corresponding Python/scikit-learn/XGBoost environment.
 
-  STEP 2 / 5  —  Training Random Forest
-  ✅  Model saved → outputs/models/random_forest.pkl
+### Plots
 
-  STEP 3 / 5  —  SHAP Analysis
-  ✅  Plots 1–4 saved
-
-  STEP 4 / 5  —  Partial Dependence Plots
-  ✅  Plots 5–6 saved
-
-  STEP 5 / 5  —  Generating Reports & Metrics Table
-  ✅  Metrics table saved
-  ✅  Text report saved
-
-╔═════════════════════════════════════════════════════╗
-║              ✅  Pipeline Complete                  ║
-╚═════════════════════════════════════════════════════╝
+```text
+0_actual_vs_predicted.png
+1_shap_importance_bar.png
+2_shap_summary.png
+3_shap_dep_temperature.png
+4_shap_dep_time.png
+5_pdp_temperature.png
+6_pdp_time.png
+8_metrics_table.png
 ```
+
+### Report
+
+```text
+outputs/reports/results_report.txt
+```
+
+The report records:
+
+- model parameters
+- train/CV metrics
+- SHAP importance
+- interpretation notes
+- a timestamp for the run
+
+## 📈 Stored Results
+
+The repository currently contains a generated report from a previous run.
+
+| Metric | Random Forest | XGBoost |
+|---|---:|---:|
+| Train R² | **0.6904** | 0.5338 |
+| CV R² mean | **-0.2679** | -0.2862 |
+| CV R² std | 0.4119 | 0.4019 |
+| Train RMSE (nm) | 7.97 | 9.78 |
+| CV RMSE (nm) | **13.65** | 13.77 |
+| Train MAE (nm) | **6.22** | 8.07 |
+| CV MAE (nm) | **11.04** | 11.24 |
+| SHAP Temperature | 6.4739 | **6.8949** |
+| SHAP Time | 2.8456 | 2.0869 |
+
+These are **stored results from the committed `results_report.txt`**, not a benchmark rerun during README generation.
+
+### What the results suggest
+
+Random Forest has the slightly lower stored CV RMSE and MAE, while both models have negative mean CV R² on this small dataset. This indicates limited out-of-sample predictive reliability despite substantially better training fit.
+
+The SHAP magnitudes show that **Temperature contributes more strongly than Time** to the predictions in both stored runs.
+
+## 🔬 Interpretation Notes
+
+The committed report describes the following patterns in the generated analyses:
+
+- Temperature is roughly **2.2×** as important as Time by the reported RF SHAP values.
+- Temperature effects are nonlinear, with a stronger change in SHAP contribution in the higher-temperature region.
+- Time shows a saturation-like trend, with diminishing influence at longer durations.
+- The PDPs show an increasing predicted crystallite size as temperature rises and a weaker/diminishing time effect.
+
+These should be interpreted as **model-derived patterns**, not as proof of causal physical relationships.
+
+## ⚠️ Important Modeling Limitations
+
+The current dataset is very small for a machine-learning regression problem: only 76 observations are available, and the training pipeline uses just two predictors.
+
+More importantly, the `Fuel` column is present in the dataset but is excluded from training. Since different fuels can produce different combustion behavior, leaving Fuel out can contribute to unexplained variance.
+
+The stored negative CV R² values indicate that the current models do not generalize strongly across the selected K-fold splits.
+
+The current evaluation also uses standard shuffled KFold. For scientific reporting, additional validation strategies should be considered, especially when multiple observations may share similar experimental conditions.
+
+## 🚀 Recommended Extensions
+
+- Encode **Fuel** as a categorical feature.
+- Add physically meaningful descriptors beyond temperature and time.
+- Increase the number of observations and replicate measurements.
+- Compare grouped or stratified validation strategies appropriate for experimental batches.
+- Add uncertainty intervals around predictions.
+- Evaluate Gaussian Process Regression for small-data behavior.
+- Tune hyperparameters using nested or repeated cross-validation.
+- Add an explicit held-out test set.
+- Compare feature-only and fuel-aware models with an ablation study.
+- Track experiment provenance and data source metadata.
+
+## 🤖 Continuous Integration
+
+GitHub Actions is configured in:
+
+```text
+.github/workflows/ci.yml
+```
+
+The workflow runs on pushes and pull requests targeting `main` or `master` and:
+
+1. checks out the repository
+2. installs Python 3.11
+3. installs `requirements.txt`
+4. executes `python main.py`
+5. uploads the generated `outputs/` directory as a workflow artifact
+
+This provides an automated reproducibility check for the complete pipeline.
+
+## 📚 References
+
+The project draws on established methods including:
+
+1. Breiman, L. — **Random Forests**, Machine Learning (2001).
+2. Chen, T. & Guestrin, C. — **XGBoost: A Scalable Tree Boosting System** (2016).
+3. Lundberg, S. M. & Lee, S.-I. — **A Unified Approach to Interpreting Model Predictions** (2017).
+4. Scherrer, P. — **Determination of the Size and Internal Structure of Colloid Particles by X-Rays** (1918).
+
+## 👤 Author
+
+**Harshit Garg**
+
+GitHub: [Harshit765G4](https://github.com/Harshit765G4)
 
 ---
 
-## 8. Results & Deliverables
-
-| # | File | Description |
-|---|---|---|
-| 0 | `0_actual_vs_predicted.png` | Training fit scatter plot |
-| 1 | `1_shap_importance_bar.png` | Global SHAP importance bar chart |
-| 2 | `2_shap_summary.png` | SHAP beeswarm summary plot |
-| 3 | `3_shap_dep_temperature.png` | SHAP dependence — Temperature |
-| 4 | `4_shap_dep_time.png` | SHAP dependence — Time |
-| 5 | `5_pdp_temperature.png` | Partial dependence — Temperature |
-| 6 | `6_pdp_time.png` | Partial dependence — Time |
-| 7 | `8_metrics_table.png` | All metrics in table format |
-| — | `random_forest.pkl` | Saved model (load with pickle) |
-| — | `results_report.txt` | Full text report |
-
-### Model Metrics Summary
-
-| Metric | Value |
-|---|---|
-| n_estimators | 300 |
-| max_depth | None (full) |
-| min_samples_split | 3 |
-| CV Strategy | 5-Fold KFold |
-| **Train R²** | **0.6935** |
-| CV R² (mean ± std) | −0.24 ± 0.39 |
-| Train RMSE (nm) | 7.93 |
-| CV RMSE (nm) | 13.53 |
-| Train MAE (nm) | 6.15 |
-| CV MAE (nm) | 10.93 |
-| SHAP — Temperature | 6.484 |
-| SHAP — Time | 2.928 |
-
----
-
-## 9. Interpretation of Results
-
-### A. SHAP Global Importance
-
-Temperature (K) has a mean |SHAP| of **6.484 nm** vs Time's **2.928 nm**, making Temperature approximately **2.2× more influential** in determining crystallite size.
-
-### B. SHAP Summary Plot
-
-- **High Temperature** (warm colours) → large positive SHAP values → larger predicted crystallite size.
-- **High Time** → generally positive SHAP but with greater spread → less consistent influence.
-- Temperature dominates the variance; Time provides secondary modulation.
-
-### C. SHAP Dependence — Temperature
-
-- Influence is **nonlinear** — confirmed by the cubic trend.
-- A distinct **transition threshold** appears at approximately **800–1000 K**.
-- Below ~700 K: SHAP ≈ 0 → thermal energy insufficient for significant grain growth.
-- Above ~1100 K: SHAP strongly positive → rapid crystallite coarsening.
-- Physical interpretation: consistent with thermally activated grain boundary migration.
-
-### D. SHAP Dependence — Time
-
-- **Saturation behaviour** confirmed via quadratic trend line.
-- SHAP contribution rises steeply from 1 to ~4 h.
-- Beyond 5 h: near-plateau → diminishing returns on crystallite growth.
-- High-temperature samples (viridis, yellow) override time effects, showing T dominance.
-
-### E. PDP — Temperature
-
-- Monotonically increasing predicted crystallite size.
-- Steepest gradient above ~850 K → Arrhenius-type activation regime.
-- Physical interpretation: grain growth rate follows `D^n - D₀^n = K·t·exp(-Q/RT)`.
-
-### F. PDP — Time
-
-- Sharp rise from 1 to ~4 h; near-plateau at ≥ 5 h.
-- Saturation kinetics consistent with classical grain growth theory.
-- Time alone cannot compensate for insufficient synthesis temperature.
-
-### G. Model Performance Note
-
-The negative CV R² arises from:
-1. **Small dataset** (76 samples) → high variance between folds
-2. **Mixed fuel types** → different fuels produce different effective temperatures at the same nominal T/t
-3. **Scatter** in crystallite size at identical conditions
-
-**Recommended improvements for future work:**
-- Add Fuel as a one-hot encoded categorical feature
-- Train separate per-fuel sub-models
-- Acquire more data points per fuel type
-- Consider Gaussian Process Regression for small-data regimes
-
----
-
-## 10. GitHub Setup Guide
-
-### First-Time Push
-
-```bash
-# 1. Navigate to project folder
-cd CrystalliteML
-
-# 2. Initialise git
-git init
-
-# 3. Add all files
-git add .
-
-# 4. First commit
-git commit -m "feat: initial CrystalliteML pipeline"
-
-# 5. Create repo on GitHub (via website), then:
-git remote add origin https://github.com/YOUR_USERNAME/CrystalliteML.git
-
-# 6. Push
-git branch -M main
-git push -u origin main
-```
-
-### Subsequent Updates
-
-```bash
-git add .
-git commit -m "update: description of your change"
-git push
-```
-
-### Recommended GitHub Repository Settings
-
-```
-Repository name  : CrystalliteML
-Description      : RF + SHAP + PDP pipeline for crystallite size prediction
-Visibility       : Public (for IEEE submission credibility)
-Add README       : ✓ (already included)
-Add .gitignore   : ✓ (already included)
-```
-
----
-
-## 11. Dependencies
-
-| Package | Version | Purpose |
-|---|---|---|
-| numpy | ≥1.24 | Numerical arrays |
-| pandas | ≥2.0 | Data loading and manipulation |
-| scikit-learn | ≥1.3 | Random Forest, CV, PDP |
-| shap | ≥0.44 | SHAP value computation |
-| matplotlib | ≥3.7 | All plots |
-| seaborn | ≥0.12 | Optional styling support |
-
-Install all with: `pip install -r requirements.txt`
-
----
-
-## 12. Citation & References
-
-If you use this pipeline or dataset in your research, please cite:
-
-```bibtex
-@misc{crystalliteml2025,
-  author  = {Harshit},
-  title   = {CrystalliteML: Machine Learning Analysis of Crystallite Size
-             in Combustion-Synthesised Nanomaterials},
-  year    = {2025},
-  url     = {https://github.com/YOUR_USERNAME/CrystalliteML}
-}
-```
-
-### Key References
-
-1. Lundberg, S. M., & Lee, S. I. (2017). *A unified approach to interpreting model predictions.* NeurIPS.
-2. Breiman, L. (2001). *Random forests.* Machine Learning, 45(1), 5–32.
-3. Scherrer, P. (1918). *Bestimmung der Größe und der inneren Struktur von Kolloidteilchen mittels Röntgenstrahlen.* Nachr. Ges. Wiss. Göttingen.
-4. Friedman, J. H. (2001). *Greedy function approximation: a gradient boosting machine.* Annals of Statistics.
-
----
-
-*CrystalliteML — Built for IEEE paper submission | Python 3.11 | scikit-learn + SHAP*
+**CrystalliteML** — machine-learning prediction and explainability for crystallite growth experiments.
